@@ -1,6 +1,6 @@
 
 
-set (SRC main.cpp prjconfig.cpp)
+set (SRC main.cpp prjconfig.cpp proddb.cpp)
 
 add_executable(${PROJECT_NAME} ${SRC})
 

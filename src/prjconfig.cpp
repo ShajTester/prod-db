@@ -20,27 +20,8 @@ prjConfig::prjConfig()
 }
 
 
-prjConfig::prjConfig(std::string fn): filename(fn)
+prjConfig::prjConfig(std::string fn): confFileName(fn), dbFileName("test.sqlite")
 {
-	// Read whole file into a buffer
-	FILE* fp = fopen(filename.c_str(), "r");
-	fseek(fp, 0, SEEK_END);
-	size_t filesize = (size_t)ftell(fp);
-	fseek(fp, 0, SEEK_SET);
-	buffer = (char*)malloc(filesize + 1);
-	size_t readLength = fread(buffer, 1, filesize, fp);
-	buffer[readLength] = '\0';
-	fclose(fp);
-
-	// d.Parse(buffer);
-	if (d.Parse(buffer).HasParseError()) {
-	    // fprintf(stderr, "\nError(offset %u): %s\n", 
-	    //     (unsigned)d.GetErrorOffset(),
-	    //     GetParseError_En(d.GetParseError()));
-		SPDLOG_LOGGER_ERROR(my_logger, "Error offset {0}: error number {1}", 
-			(unsigned)d.GetErrorOffset(),
-			d.GetParseError());
-	}
 }
 
 
@@ -61,6 +42,10 @@ const rapidjson::Document &prjConfig::getDoc()
 }
 
 
+const std::string &prjConfig::getDBFileName()
+{
+	return dbFileName;
+}
 
 
 

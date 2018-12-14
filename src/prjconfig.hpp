@@ -14,7 +14,8 @@ namespace rikor
 class prjConfig
 {
 
-	std::string filename;
+	std::string confFileName;
+	std::string dbFileName;
 	rapidjson::Document d;
 	char *buffer = nullptr;
 
@@ -28,6 +29,7 @@ public:
 	~prjConfig();
 
 	const rapidjson::Document &getDoc();
+	const std::string &getDBFileName();
 };
 
 

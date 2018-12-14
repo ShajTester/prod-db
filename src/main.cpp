@@ -14,10 +14,11 @@
 #include "version.h"
 #include "spdlog/spdlog.h"
 #include "spdlog/sinks/stdout_color_sinks.h"
-#include "sqlite3.h"
 
 #include "log.h"
 #include "prjconfig.hpp"
+#include "proddb.hpp"
+
 
 std::shared_ptr<spdlog::logger> my_logger;
 
@@ -36,19 +37,6 @@ std::string GetCurrentWorkingDir(void)
 	getcwd(buff, FILENAME_MAX);
 	return std::string(buff);
 }
-
-static int callback(void *NotUsed, int argc, char **argv, char **azColName) 
-{
-	int i;
-	for(i = 0; i<argc; i++) 
-	{
-		printf("%s = %s\n", azColName[i], argv[i] ? argv[i] : "NULL");
-	}
-	printf("\n");
-	return 0;
-}
-
-
 
 
 
@@ -133,42 +121,38 @@ int main(int argc, char const *argv[])
 	// 	}
 	// }
 
-
-	SPDLOG_LOGGER_INFO(my_logger, "Config file name: {}", configFileName);
-
-	sqlite3 *db;
-	char *zErrMsg = 0;
-	int rc;
-	char *sql;
-
-   /* Open database */
-	rc = sqlite3_open("test.db", &db);
-	
-	if( rc ) {
-		fprintf(stderr, "Can't open database: %s\n", sqlite3_errmsg(db));
-		return(0);
-	} else {
-		fprintf(stdout, "Opened database successfully\n");
+	if(configFileName.size() != 0)
+	{
+		SPDLOG_LOGGER_INFO(my_logger, "Config file name: {}", configFileName);
 	}
 
-   /* Create SQL statement */
-	sql = "CREATE TABLE COMPANY("  \
-	"ID INT PRIMARY KEY     NOT NULL," \
-	"NAME           TEXT    NOT NULL," \
-	"AGE            INT     NOT NULL," \
-	"ADDRESS        CHAR(50)," \
-	"SALARY         REAL );";
+	auto config = rikor::prjConfig::create(configFileName);
 
-   /* Execute SQL statement */
-	rc = sqlite3_exec(db, sql, callback, 0, &zErrMsg);
-	
-	if( rc != SQLITE_OK ){
-		fprintf(stderr, "SQL error: %s\n", zErrMsg);
-		sqlite3_free(zErrMsg);
-	} else {
-		fprintf(stdout, "Table created successfully\n");
+	auto db = rikor::ProductDb::create();
+	try
+	{
+		db->connect(config->getDBFileName());
 	}
-	sqlite3_close(db);
+	catch(const std::exception &e)
+	{
+		std::cerr << e.what() << std::endl;
+	}
+
+	try
+	{
+		std::string str {"test"};
+		auto id = db->productId(str);
+		auto proddata = db->productData(id);
+
+		// std::cout << proddata->report() << std::endl;
+		proddata->report(std::cout);
+	}
+	catch(const std::exception &e)
+	{
+		std::cerr << e.what() << std::endl;
+	}
+
+
 
 	// Release and close all loggers
 	spdlog::drop_all();

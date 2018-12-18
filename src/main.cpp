@@ -54,7 +54,7 @@ int main(int argc, char const *argv[])
 	args::HelpFlag help(parser, "help", "Display this help menu", {'h', "help"});
 	args::Flag ver(parser, "ver", "version ", {'v', "version"});
 	args::ValueFlag<std::string> conf(parser, "conf", "Config file name", {'c', "conf"});
-	args::ValueFlag<std::string> dbfile(parser, "dbfile", "Database file name", {'f', "dbfile"});
+	args::ValueFlag<std::string> dbfile(parser, "dbfile", "Database file name", {'d', "dbfile"});
 	args::ValueFlag<std::string> product(parser, "product", "Product name", {'p', "prod"});
  //    args::Group jsongroup(parser, "This group is all exclusive:", args::Group::Validators::AtMostOne);
 	// args::Flag json(jsongroup, "json", "json in human readable format", {"json"});
@@ -62,7 +62,11 @@ int main(int argc, char const *argv[])
 	// args::Flag outtext(jsongroup, "text", "plain text format (default)", {"text"});
 	args::Group databasegroup(parser, "This group is all exclusive:", args::Group::Validators::AtMostOne);
 	args::Flag initdb(databasegroup, "initdb", "create new database", {"initdatabase"});
-	args::ValueFlag<std::string> sn_for_get(parser, "snget", "The serial number of the product for which to obtain the address.", {"get"});
+	args::Flag prodlist(databasegroup, "prodlist", "print list of product name", {"prodlist"});
+	args::ValueFlag<std::string> sn_for_get(databasegroup, "serial", "The serial number of the product for which to obtain the address.", {"get"});
+	args::ValueFlag<std::string> sn_for_free(databasegroup, "serial", "Serial number for which to release the address.", {"free"});
+
+	args::ValueFlag<int> interface_number(parser, "number", "Interface number for '--get'.", {"ni"});
 
 	try
 	{
@@ -94,66 +98,107 @@ int main(int argc, char const *argv[])
 	}
 
 
-	std::string configFileName;
+	auto config = rikor::prjConfig::create();
 
 	if(conf)
 	{ // Загружаем конфигурацию из файла
 		SPDLOG_LOGGER_DEBUG(my_logger, "main   Config file name: {}", args::get(conf));
-		configFileName = args::get(conf);
-		if(!is_file_exists(configFileName))
+		try
 		{
-			std::cerr << "\nNot found config file\n" << std::endl;
+			config->setFileName(args::get(conf));
+		}
+		catch(const std::exception &e)
+		{
+			std::cerr << e.what() << std::endl;
 			return 1;
 		}
 	}
-	// else
-	// { // Используем конфигурацию по умолчанию
-	// 	configFileName = "/etc/dscan/dscan.conf";
-	// 	if(!is_file_exists(configFileName))
-	// 	{
-	// 		configFileName = GetCurrentWorkingDir();
-	// 		configFileName.append("/dscan.conf");
-	// 		if(!is_file_exists(configFileName))
-	// 		{
-	// 			std::cerr << fmt::format("\nNot found config file: {}\n", configFileName) << std::endl;
-	// 			return 1;
-	// 		}
-	// 	}
-	// }
 
-	if(configFileName.size() != 0)
+	try
 	{
-		SPDLOG_LOGGER_INFO(my_logger, "Config file name: {}", configFileName);
+		if(dbfile) config->setDbFileName(args::get(dbfile));
+		if(product) config->setProdType(args::get(product));
+	}
+	catch(const std::exception &e)
+	{
+		// Ошибки установки основных параметров.
+		// Продолжать работу не можем.
+		std::cerr << e.what() << std::endl;
+		return 1;
 	}
 
-	auto config = rikor::prjConfig::create(configFileName);
 
 	auto db = rikor::ProductDb::create();
-	try
+
+	if(initdb)
 	{
-		db->connect(config->getDBFileName());
+		if(!is_file_exists(config->getDbFileName()))
+		{
+			try
+			{
+				db->connect(config->getDbFileName());
+				db->createDB();
+			}
+			catch(const std::exception &e)
+			{
+				// Не смогли подключиться к базе
+				std::cerr << e.what() << std::endl;
+				return 1;
+			}
+
+		}
+		else
+		{
+			// Существующий файл перезаписывать новой базой не нужно
+			std::cerr << fmt::format("File {} already exists. Please enter a different name.", config->getDbFileName()) << std::endl;
+			return 1;
+		}
 	}
-	catch(const std::exception &e)
+	else
 	{
-		std::cerr << e.what() << std::endl;
+		try
+		{
+			db->connect(config->getDbFileName());
+
+			if(prodlist)
+			{
+				db->printProdList(std::cout);
+			}
+			else if(sn_for_get)
+			{
+				auto id = db->productId(args::get(sn_for_get));
+				auto proddata = db->productData(id);
+				if(interface_number)
+				{
+					int ni = args::get(interface_number);
+					std::cout << proddata->if_number(ni) << std::flush;
+				}
+				else
+				{
+					proddata->report(std::cout);
+				}
+			}
+			else if(sn_for_free)
+			{
+				auto id = db->productId(args::get(sn_for_free));
+				db->freeProd(id);
+			}
+		}
+		catch(const std::exception &e)
+		{
+			// Не смогли подключиться к базе
+			std::cerr << e.what() << std::endl;
+			return 1;
+		}
+
+		if(prodlist)
+		{
+		}
 	}
 
-	try
-	{
-		std::string str {"test"};
-		auto id = db->productId(str);
-		auto proddata = db->productData(id);
 
-		// std::cout << proddata->report() << std::endl;
-		proddata->report(std::cout);
-	}
-	catch(const std::exception &e)
-	{
-		std::cerr << e.what() << std::endl;
-	}
-
-
-
+	// Сохраняем используемые параметры
+	config->save();
 	// Release and close all loggers
 	spdlog::drop_all();
 	return 0;

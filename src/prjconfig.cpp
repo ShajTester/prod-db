@@ -3,8 +3,6 @@
 
 #include <string>
 #include <memory>
-#include "rapidjson/rapidjson.h"
-#include "rapidjson/document.h"  
 
 #include "prjconfig.hpp"
 #include "log.h"
@@ -17,34 +15,63 @@ namespace rikor
 
 prjConfig::prjConfig()
 {
-}
-
-
-prjConfig::prjConfig(std::string fn): confFileName(fn), dbFileName("test.sqlite")
-{
-}
-
-
-std::shared_ptr<prjConfig> prjConfig::create(const std::string &fn)
-{
-	return std::shared_ptr<prjConfig>(new prjConfig(fn));
+	dbFileName = "../prod.sqlite3";
+	// { // Используем конфигурацию по умолчанию
+	// 	configFileName = "/etc/dscan/dscan.conf";
+	// 	if(!is_file_exists(configFileName))
+	// 	{
+	// 		configFileName = GetCurrentWorkingDir();
+	// 		configFileName.append("/dscan.conf");
+	// 		if(!is_file_exists(configFileName))
+	// 		{
+	// 			std::cerr << fmt::format("\nNot found config file: {}\n", configFileName) << std::endl;
+	// 			return 1;
+	// 		}
+	// 	}
+	// }
 }
 
 prjConfig::~prjConfig()
 {
-	if(buffer) free(buffer);
-	// Note: At this point, d may have dangling pointers pointed to the deallocated buffer.
 }
 
-const rapidjson::Document &prjConfig::getDoc()
+
+void prjConfig::setFileName(const std::string &fn)
 {
-	return d;
 }
 
 
-const std::string &prjConfig::getDBFileName()
+void prjConfig::setDbFileName(const std::string &fn)
+{
+	dbFileName = fn;
+}
+
+
+const std::string &prjConfig::getDbFileName() const
 {
 	return dbFileName;
+}
+
+
+void prjConfig::setProdType(const std::string &tn)
+{
+	// Ищем в базе Id
+}
+
+
+void prjConfig::setProdType(int tp)
+{
+	// Проверяем, что Id присутствует в базе
+}
+
+
+void prjConfig::save()
+{
+}
+
+std::shared_ptr<prjConfig> prjConfig::create()
+{
+	return std::shared_ptr<prjConfig>(new prjConfig());
 }
 
 

@@ -14,12 +14,16 @@ public:
 	~ProductData();
 	
 	void report(std::ostream &os);
+	std::string if_number(int ni);
 };
 
 
 
 class ProductDb
 {
+
+	static constexpr unsigned long long start_mac_address = 0x1dc3000000;
+	static constexpr unsigned long long max_mac_address = 0x1dc3ffffff;
 
 	static int callback(void *NotUsed, int argc, char **argv, char **azColName);
 	// Отсюда
@@ -36,6 +40,8 @@ class ProductDb
 
 	unique_sqlite3 db;
 
+	std::string dbFileName;
+
 	ProductDb();
 
 public:
@@ -44,9 +50,11 @@ public:
 	~ProductDb();
 
 	void connect(const std::string &dbfn);
-	void createTable();
+	void createDB();
 	int productId(const std::string &str);
 	std::shared_ptr<ProductData> productData(int id);
+	void printProdList(std::ostream &os);
+	void freeProd(int id);
 
 };
 

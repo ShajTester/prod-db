@@ -1,7 +1,14 @@
 #pragma once
 
+#include <iostream>
 #include <memory>
-#include <sqlite3.h>
+#include <string>
+
+#include "sqlite_modern_cpp.h"
+
+//
+// What is a good OO C++ wrapper for sqlite [closed]
+// https://stackoverflow.com/questions/120295/what-is-a-good-oo-c-wrapper-for-sqlite
 
 
 namespace rikor
@@ -10,14 +17,22 @@ namespace rikor
 class ProductData
 {
 public:
-	ProductData();
-	~ProductData();
-	
-	void report(std::ostream &os);
-	std::string if_number(int ni);
+	virtual void report(std::ostream &os) = 0;
+	virtual std::string if_number(int ni) = 0;
+	virtual void push_addr(int rowid, std::string addr, long long d) = 0;
 };
 
 
+class RBDE5RData : public ProductData
+{
+public:	
+	RBDE5RData();
+	~RBDE5RData();
+
+	void report(std::ostream &os) override;
+	std::string if_number(int ni) override;
+	void push_addr(int rowid, std::string addr, long long d);
+};
 
 class ProductDb
 {
@@ -25,24 +40,10 @@ class ProductDb
 	static constexpr unsigned long long start_mac_address = 0x1dc3000000;
 	static constexpr unsigned long long max_mac_address = 0x1dc3ffffff;
 
-	static int callback(void *NotUsed, int argc, char **argv, char **azColName);
-	// Отсюда
-	// http://qaru.site/questions/2421964/c-smart-pointers-confusion/6275171#6275171
-	struct sqlite3_deleter 
-	{
-		void operator()(sqlite3* p) const
-		{
-			sqlite3_close(p);
-		}
-	};
-
-	using unique_sqlite3 = std::unique_ptr<sqlite3, sqlite3_deleter>;
-
-	unique_sqlite3 db;
-
 	std::string dbFileName;
 
 	ProductDb();
+	void fill_mac_addr_table(sqlite::connection_type con);
 
 public:
 

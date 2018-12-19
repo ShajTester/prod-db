@@ -44,7 +44,7 @@ int main(int argc, char const *argv[])
 {
 
 	my_logger = spdlog::stdout_color_st("A");
-	my_logger->set_level(spdlog::level::trace);
+	my_logger->set_level(spdlog::level::debug);
 	// my_logger->trace(" -=- Start");
 
 	// Примеры разбора командной строки
@@ -56,6 +56,7 @@ int main(int argc, char const *argv[])
 	args::ValueFlag<std::string> conf(parser, "conf", "Config file name", {'c', "conf"});
 	args::ValueFlag<std::string> dbfile(parser, "dbfile", "Database file name", {'d', "dbfile"});
 	args::ValueFlag<std::string> product(parser, "product", "Product name", {'p', "prod"});
+	args::ValueFlag<int> log_level(parser, "level", "log level", {"log"});
  //    args::Group jsongroup(parser, "This group is all exclusive:", args::Group::Validators::AtMostOne);
 	// args::Flag json(jsongroup, "json", "json in human readable format", {"json"});
 	// args::Flag json1(jsongroup, "json1", "json single line format", {"json1"});
@@ -97,6 +98,12 @@ int main(int argc, char const *argv[])
 		return 0;
 	}
 
+	if(log_level)
+	{
+		int ll = args::get(log_level);
+		if((ll >= SPDLOG_LEVEL_TRACE) && (ll <= SPDLOG_LEVEL_OFF))
+			my_logger->set_level(static_cast<spdlog::level::level_enum>(ll));
+	}
 
 	auto config = rikor::prjConfig::create();
 

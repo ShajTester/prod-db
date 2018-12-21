@@ -179,6 +179,7 @@ int main(int argc, char const *argv[])
 					SPDLOG_LOGGER_INFO(my_logger, "Create new device");
 					id = db->newId(2, args::get(sn_for_get));
 				}
+
 				auto proddata = db->productData(id);
 				if(interface_number)
 				{

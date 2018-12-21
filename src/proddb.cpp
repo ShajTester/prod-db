@@ -30,16 +30,24 @@ RBDE5RData::~RBDE5RData()
 
 void RBDE5RData::report(std::ostream &os)
 {
+	char mbstr[100];
 	if(i210.rowid != -1)
-		os << fmt::format("i210: {0}  {1}\n", i210.addr, i210.timestamp);
+	{
+		std::strftime(mbstr, sizeof(mbstr), "%F %R", std::localtime(&i210.timestamp));
+		os << fmt::format("i210: '{0}'  allocated at  {1}\n", i210.addr, mbstr);
+	}
 	else
 		os << "i210: not allocated\n";
 	if(i217.rowid != -1)
-		os << fmt::format("i217: {0}  {1}\n", i217.addr, i217.timestamp);
+	{
+		std::strftime(mbstr, sizeof(mbstr), "%F %R", std::localtime(&i217.timestamp));
+		os << fmt::format("i217: '{0}'  allocated at  {1}\n", i217.addr, mbstr);
+	}
 	else
-		os << "i210: not allocated\n";
+		os << "i217: not allocated\n";
 	os << std::endl;
 }
+
 
 const std::string &RBDE5RData::if_number(int ni)
 {
@@ -49,7 +57,7 @@ const std::string &RBDE5RData::if_number(int ni)
 		return i217.addr;
 	else
 	{
-		SPDLOG_LOGGER_ERROR(my_logger, "Error in if_number: ni={0}, i210={1}, i217={2}", ni, i210.rowid, i217.rowid);
+		SPDLOG_LOGGER_CRITICAL(my_logger, "Error in if_number: ni={0}, i210={1}, i217={2}", ni, i210.rowid, i217.rowid);
 		throw "Error in if_number";
 	}
 }
@@ -236,6 +244,7 @@ int ProductDb::newId(int type, const std::string &str)
 	{
 		std::cerr  << e.get_code() << ": " << e.what() << " during \""
 			<< e.get_sql() << "\"" << std::endl;
+		id = -1;
 	}
 
 	SPDLOG_LOGGER_DEBUG(my_logger, "ProductDb::newId  id = {}", id);
@@ -279,7 +288,7 @@ std::shared_ptr<ProductData> ProductDb::productData(int id)
 		// Если адреса уже были выделены, просто их читаем.
 		std::vector<mac_table_row> vres;
 		db << "select rowid, addr, date from mac_addr where device=?" << id
-			>> [&vres](int id, std::string addr, long long date)
+			>> [&vres](int id, std::string addr, std::time_t date)
 				{ 
 					vres.push_back(mac_table_row{id, addr, 0, date});
 				};
@@ -313,12 +322,12 @@ std::shared_ptr<ProductData> ProductDb::productData(int id)
 			for(const auto &s: sa)
 				db << "update mac_addr set device=?, date=? where addr=?" 
 					<< id 
-					<< std::to_string((long long)std::time(nullptr))
+					<< std::time(nullptr)
 					<< s;
 
 			vres.clear();
 			db << "select rowid, addr, date from mac_addr where device=?" << id
-				>> [&vres](int id, std::string addr, long long date)
+				>> [&vres](int id, std::string addr, std::time_t date)
 					{ 
 						vres.push_back(mac_table_row{id, addr, 0, date});
 					};

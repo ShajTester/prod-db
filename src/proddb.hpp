@@ -20,7 +20,7 @@ struct mac_table_row
 	int rowid;
 	std::string addr;
 	int devid;
-	long long int timestamp;
+	std::time_t timestamp;
 };
 
 

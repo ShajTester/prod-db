@@ -6,7 +6,7 @@ _Утилита для управления MAC адресами на произ
 - Разбор параметров командной строки [Taywee/args](https://github.com/Taywee/args)
 - Модульные тесты [Catch2](https://github.com/catchorg/Catch2)
 - Журнал [spdlog](https://github.com/gabime/spdlog)
-- JSON [rapidjson](https://github.com/Tencent/rapidjson)
+- The C++14 wrapper around sqlite library - [sqlite_modern_cpp](https://github.com/SqliteModernCpp/sqlite_modern_cpp)
 
 Установка SQLite 3 на Ubuntu
 ```shell
@@ -20,7 +20,7 @@ sudo apt-get install sqlite3 libsqlite3-dev
 prod-db --dbfile "test.sqlite" --initdatabase
 ```
 Если файл базы данных не найден и нет ключа `--initdatabase`, то возвращается ошибка.
-Если указан ключ `--initdatabase` и существует файл базы, то возвращается ошибка.
+Если указан ключ `--initdatabase` и файл базы существует, то возвращается ошибка.
 
 Получение адресов, выделенных для изделия с серийным номером "1" или выделение новых адресов:
 ```shell

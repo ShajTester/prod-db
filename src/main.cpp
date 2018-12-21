@@ -173,7 +173,12 @@ int main(int argc, char const *argv[])
 			}
 			else if(sn_for_get)
 			{
-				auto id = db->productId(args::get(sn_for_get));
+				auto id = db->findId(args::get(sn_for_get));
+				if(id == -1)
+				{
+					SPDLOG_LOGGER_INFO(my_logger, "Create new device");
+					id = db->newId(2, args::get(sn_for_get));
+				}
 				auto proddata = db->productData(id);
 				if(interface_number)
 				{
@@ -187,8 +192,9 @@ int main(int argc, char const *argv[])
 			}
 			else if(sn_for_free)
 			{
-				auto id = db->productId(args::get(sn_for_free));
-				db->freeProd(id);
+				auto id = db->findId(args::get(sn_for_free));
+				if(id != -1) db->freeProd(id);
+				else SPDLOG_LOGGER_ERROR(my_logger, "Serial number '{}' not found", args::get(sn_for_free));
 			}
 		}
 		catch(const std::exception &e)
@@ -196,10 +202,6 @@ int main(int argc, char const *argv[])
 			// Не смогли подключиться к базе
 			std::cerr << e.what() << std::endl;
 			return 1;
-		}
-
-		if(prodlist)
-		{
 		}
 	}
 

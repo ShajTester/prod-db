@@ -14,25 +14,40 @@
 namespace rikor
 {
 
+
+struct mac_table_row
+{
+	int rowid;
+	std::string addr;
+	int devid;
+	long long int timestamp;
+};
+
+
+
 class ProductData
 {
 public:
 	virtual void report(std::ostream &os) = 0;
-	virtual std::string if_number(int ni) = 0;
-	virtual void push_addr(int rowid, std::string addr, long long d) = 0;
+	virtual const std::string &if_number(int ni) = 0;
+	virtual void push_addr(int rowid, const std::string &addr, long long d) = 0;
 };
 
 
 class RBDE5RData : public ProductData
 {
+	mac_table_row i210;
+	mac_table_row i217;
+
 public:	
 	RBDE5RData();
 	~RBDE5RData();
 
 	void report(std::ostream &os) override;
-	std::string if_number(int ni) override;
-	void push_addr(int rowid, std::string addr, long long d);
+	const std::string &if_number(int ni) override;
+	void push_addr(int rowid, const std::string &addr, long long d) override;
 };
+
 
 class ProductDb
 {
@@ -52,7 +67,8 @@ public:
 
 	void connect(const std::string &dbfn);
 	void createDB();
-	int productId(const std::string &str);
+	int findId(const std::string &str);
+	int newId(int type, const std::string &str);
 	std::shared_ptr<ProductData> productData(int id);
 	void printProdList(std::ostream &os);
 	void freeProd(int id);
@@ -60,3 +76,4 @@ public:
 };
 
 } // namespace rikor
+

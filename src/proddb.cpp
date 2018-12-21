@@ -20,6 +20,8 @@ namespace rikor
 
 RBDE5RData::RBDE5RData()
 {
+	i210.rowid = -1;
+	i217.rowid = -1;
 }
 
 RBDE5RData::~RBDE5RData()
@@ -28,16 +30,52 @@ RBDE5RData::~RBDE5RData()
 
 void RBDE5RData::report(std::ostream &os)
 {
-	os << "ID:  xxx\nProduct:  xxx" << std::endl;
+	if(i210.rowid != -1)
+		os << fmt::format("i210: {0}  {1}\n", i210.addr, i210.timestamp);
+	else
+		os << "i210: not allocated\n";
+	if(i217.rowid != -1)
+		os << fmt::format("i217: {0}  {1}\n", i217.addr, i217.timestamp);
+	else
+		os << "i210: not allocated\n";
+	os << std::endl;
 }
 
-std::string RBDE5RData::if_number(int ni)
+const std::string &RBDE5RData::if_number(int ni)
 {
-	return std::string("0x1x2x3x4x5x");
+	if((ni == 0) && (i210.rowid != -1))
+		return i210.addr;
+	else if((ni == 1) && (i217.rowid != -1))
+		return i217.addr;
+	else
+	{
+		SPDLOG_LOGGER_ERROR(my_logger, "Error in if_number: ni={0}, i210={1}, i217={2}", ni, i210.rowid, i217.rowid);
+		throw "Error in if_number";
+	}
 }
 
-void RBDE5RData::push_addr(int rowid, std::string addr, long long d)
+void RBDE5RData::push_addr(int rowid, const std::string &addr, long long d)
 {
+	if((i210.rowid == -1) || (i210.rowid == rowid))
+	{
+		i210.rowid = rowid;
+		i210.addr = addr;
+		i210.timestamp = d;
+	}
+	else if(i210.rowid < rowid)
+	{
+		i217.rowid = rowid;
+		i217.addr = addr;
+		i217.timestamp = d;
+	}
+	else // if(i210.rowid > rowid)
+	{
+		i217 = i210;
+
+		i210.rowid = rowid;
+		i210.addr = addr;
+		i210.timestamp = d;
+	}		
 }
 
 
@@ -51,51 +89,12 @@ ProductDb::ProductDb()
 
 ProductDb::~ProductDb()
 {
-	// if(db) sqlite3_close(db);
 }
-
-
-// int ProductDb::callback(void *NotUsed, int argc, char **argv, char **azColName) 
-// {
-// 	int i;
-// 	for(i = 0; i<argc; i++) 
-// 	{
-// 		printf("%s = %s\n", azColName[i], argv[i] ? argv[i] : "NULL");
-// 	}
-// 	printf("\n");
-// 	return 0;
-// }
-
 
 
 void ProductDb::connect(const std::string &dbfn)
 {
-
-		dbFileName = dbfn;
-
-	// Здесь проверяем, что файл базы доступен
-
-	// sqlite3 *p;
-	// int rc;
-	// // std::string fn {dbfn};
-
-	// /* Open database */
-	// rc = sqlite3_open(dbfn.c_str(), &p);
-	// db.reset(p);
-	
-	// if( rc ) 
-	// {
-	// 	std::string tstr {sqlite3_errmsg(db.get())};
-	// 	fprintf(stderr, "Can't open database: %s\nFile name: %s\n", tstr.c_str(), dbfn.c_str());
-	// 	SPDLOG_LOGGER_CRITICAL(my_logger, "Can't open database: {}", tstr);
-	// 	SPDLOG_LOGGER_CRITICAL(my_logger, "File name: {}", dbfn);
-	// 	return;
-	// } 
-	// else 
-	// {
-	// 	SPDLOG_LOGGER_DEBUG(my_logger, "Opened database successfully {}", dbfn);
-	// }
-	// Проверяем структуру базы
+	dbFileName = dbfn;
 }
 
 
@@ -142,35 +141,6 @@ static const char *database_init11 =
 
 void ProductDb::createDB()
 {
-	// char *zErrMsg = 0;
-	// int rc;
-
-	// if(!db)
-	// {
-	// 	SPDLOG_LOGGER_CRITICAL(my_logger, "No database connection");
-	// 	throw "No database connection";
-	// 	return;
-	// }
-	// /* Execute SQL statement */
-	// rc = sqlite3_exec(db.get(), database_init, NULL, 0, &zErrMsg);
-	
-	// if( rc != SQLITE_OK )
-	// {
-	// 	fprintf(stderr, "SQL error: %s\n", zErrMsg);
-	// 	SPDLOG_LOGGER_ERROR(my_logger, "SQL error: {}", zErrMsg);
-	// 	sqlite3_free(zErrMsg);
-	// 	throw "Error while create DB";
-	// } 
-	// else 
-	// {
-	// 	SPDLOG_LOGGER_DEBUG(my_logger, "Database created successfully at file {}", dbFileName);
-	// }
-
-	// sqlite::sqlite_config config;
-	// config.flags = sqlite::OpenFlags::CREATE;
-
-	// sqlite::database db(dbFileName, config);
-
 	SPDLOG_LOGGER_DEBUG(my_logger, "Database file: {}", dbFileName);
 
 	sqlite::database db(dbFileName);
@@ -233,7 +203,7 @@ void ProductDb::fill_mac_addr_table(sqlite::connection_type con)
 
 
 
-int ProductDb::productId(const std::string &str)
+int ProductDb::findId(const std::string &str)
 {
 	sqlite::database db(dbFileName);
 
@@ -244,24 +214,34 @@ int ProductDb::productId(const std::string &str)
 	}
 	catch(const sqlite::errors::no_rows &e)
 	{
-		db << "insert into devices(type, serial) values(?,?)" << 2 << str;
-		id = db.last_insert_rowid();
+		id = -1;
 	}
 
-	SPDLOG_LOGGER_DEBUG(my_logger, "ProductDb::productId  id = {}", id);
+	SPDLOG_LOGGER_DEBUG(my_logger, "ProductDb::findId  id = {}", id);
 
 	return id;
 }
 
-
-struct mac_table_row
+int ProductDb::newId(int type, const std::string &str)
 {
-	int rowid;
-	std::string addr;
-	int devid;
-	long long int timestamp;
-};
+	sqlite::database db(dbFileName);
 
+	int id;
+	try
+	{
+		db << "insert into devices(type, serial) values(?,?)" << type << str;
+		id = db.last_insert_rowid();
+	}
+	catch (sqlite::sqlite_exception &e)
+	{
+		std::cerr  << e.get_code() << ": " << e.what() << " during \""
+			<< e.get_sql() << "\"" << std::endl;
+	}
+
+	SPDLOG_LOGGER_DEBUG(my_logger, "ProductDb::newId  id = {}", id);
+
+	return id;
+}
 
 std::shared_ptr<ProductData> ProductDb::productData(int id)
 {
@@ -364,49 +344,39 @@ std::shared_ptr<ProductData> ProductDb::productData(int id)
 // https://stackoverflow.com/a/11238683
 void ProductDb::printProdList(std::ostream &os)
 {
-	// if(!db)
-	// {
-	// 	SPDLOG_LOGGER_CRITICAL(my_logger, "No database connection");
-	// 	throw "No database connection";
-	// 	return;
-	// }
-
-	// char sql[] = "select id, type, aliase from dev_types";
-	// sqlite3_stmt* stmt;
-
-	// sqlite3_prepare(db.get(), sql, sizeof(sql), &stmt, NULL);
-	// bool done = false;
-	// while(!done)
-	// {
-	// 	switch(sqlite3_step(stmt))
-	// 	{
-	// 	case SQLITE_ROW:
-	// 		os << sqlite3_column_int(stmt, 0)
-	// 			<< "\t" << sqlite3_column_text(stmt, 1)
-	// 			<< "\t" << sqlite3_column_text(stmt, 2) << "\n";
-	// 		break;
-	// 	case SQLITE_DONE:
-	// 		done = true;
-	// 		break;
-	// 	default:
-	// 		SPDLOG_LOGGER_ERROR(my_logger, "Error while reading table");
-	// 		break;
-	// 	}
-	// }
-	// sqlite3_finalize(stmt);
-	// os << std::endl;
+	try
+	{
+		sqlite::database db(dbFileName);
+		db << "select id, type, aliase from dev_types"
+			>> [&os](int id, std::string type, std::string aliase)
+				{ os << id << "\t" << type << "\t" << aliase << "\n"; };
+		os << std::endl;
+	}
+	catch (sqlite::sqlite_exception &e)
+	{
+		std::cerr  << e.get_code() << ": " << e.what() << " during "
+			<< e.get_sql() << std::endl;
+	}
 }
 
 
 void ProductDb::freeProd(int id)
 {
-	// if(!db)
-	// {
-	// 	SPDLOG_LOGGER_CRITICAL(my_logger, "No database connection");
-	// 	throw "No database connection";
-	// 	return;
-	// }
-
+	SPDLOG_LOGGER_TRACE(my_logger, "{}", __PRETTY_FUNCTION__);
+	SPDLOG_LOGGER_DEBUG(my_logger, "   id = {}", id);
+	try
+	{
+		sqlite::database db(dbFileName);
+		// Освободить MAC-адреса
+		db << "update mac_addr set device = NULL where device = ?;" << id;
+		// Удалить информацию об устройстве
+		db << "delete from devices where id = ?;" << id;
+	}
+	catch (sqlite::sqlite_exception &e)
+	{
+		std::cerr  << e.get_code() << ": " << e.what() << " during \""
+			<< e.get_sql() << "\"" << std::endl;
+	}
 }
 
 

@@ -21,6 +21,8 @@ class prjConfig
 	prjConfig();
 	prjConfig(std::string fn);
 
+	void readConfig();
+
 public:
 
 	static std::shared_ptr<prjConfig> create();
@@ -30,8 +32,8 @@ public:
 	void setFileName(const std::string &fn);
 	void setDbFileName(const std::string &fn);
 	const std::string &getDbFileName() const;
-	void setProdType(const std::string &tn);
 	void setProdType(int tp);
+	int getProdType();
 	void save();
 };
 

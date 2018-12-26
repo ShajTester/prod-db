@@ -389,6 +389,19 @@ void ProductDb::freeProd(int id)
 }
 
 
+int ProductDb::getProdTypeId(const std::string &str)
+{
+	return 0;
+}
+
+
+bool ProductDb::checkProdType(int id)
+{
+	return false;
+}
+
+
+
 std::shared_ptr<ProductDb> ProductDb::create()
 {
 	return std::shared_ptr<ProductDb>(new ProductDb());

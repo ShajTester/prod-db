@@ -25,7 +25,7 @@ std::shared_ptr<spdlog::logger> my_logger;
 
 // Отсюда
 // https://stackoverflow.com/a/12774387
-inline bool is_file_exists(const std::string &name) 
+bool is_file_exists(const std::string &name) 
 {
 	struct stat buffer;   
 	return (stat (name.c_str(), &buffer) == 0); 
@@ -124,7 +124,6 @@ int main(int argc, char const *argv[])
 	try
 	{
 		if(dbfile) config->setDbFileName(args::get(dbfile));
-		if(product) config->setProdType(args::get(product));
 	}
 	catch(const std::exception &e)
 	{
@@ -132,6 +131,27 @@ int main(int argc, char const *argv[])
 		// Продолжать работу не можем.
 		std::cerr << e.what() << std::endl;
 		return 1;
+	}
+
+
+	if(product) 
+	{
+		auto db = rikor::ProductDb::create();
+		if(!is_file_exists(config->getDbFileName()))
+		{
+			try
+			{
+				db->connect(config->getDbFileName());
+				int prId = db->getProdTypeId(args::get(product));
+				config->setProdType(prId);
+			}
+			catch(const std::exception &e)
+			{
+				// Не смогли подключиться к базе
+				std::cerr << e.what() << std::endl;
+				return 1;
+			}
+		}
 	}
 
 
@@ -152,7 +172,6 @@ int main(int argc, char const *argv[])
 				std::cerr << e.what() << std::endl;
 				return 1;
 			}
-
 		}
 		else
 		{
@@ -162,7 +181,7 @@ int main(int argc, char const *argv[])
 		}
 	}
 	else
-	{
+	{ // Не initdb
 		try
 		{
 			db->connect(config->getDbFileName());
@@ -177,7 +196,10 @@ int main(int argc, char const *argv[])
 				if(id == -1)
 				{
 					SPDLOG_LOGGER_INFO(my_logger, "Create new device");
-					id = db->newId(2, args::get(sn_for_get));
+					if(db->checkProdType(config->getProdType()))
+						id = db->newId(config->getProdType(), args::get(sn_for_get));
+					else
+						throw "Invalid ProdType";
 				}
 
 				auto proddata = db->productData(id);

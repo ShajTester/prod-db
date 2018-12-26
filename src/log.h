@@ -7,3 +7,4 @@
 
 extern std::shared_ptr<spdlog::logger> my_logger;
 
+bool is_file_exists(const std::string &name);

@@ -67,11 +67,19 @@ public:
 
 	void connect(const std::string &dbfn);
 	void createDB();
+
+	// Тип продукта
+	int getProdTypeId(const std::string &str);
+	bool checkProdType(int id);
+
+	// Изделие
 	int findId(const std::string &str);
 	int newId(int type, const std::string &str);
 	std::shared_ptr<ProductData> productData(int id);
-	void printProdList(std::ostream &os);
 	void freeProd(int id);
+
+	// Отчет
+	void printProdList(std::ostream &os);
 
 };
 

@@ -10,7 +10,7 @@ _Утилита для управления MAC адресами на произ
 
 Установка SQLite 3 на Ubuntu
 ```shell
-sudo apt-get install sqlite3 libsqlite3-dev
+sudo apt install sqlite3 libsqlite3-dev
 ```
 
 ## Использование

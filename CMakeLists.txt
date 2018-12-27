@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.2)
 
-project(prod-db VERSION 0.0.2)
+project(prod-db VERSION 0.0.3)
 
 #find_package(Boost COMPONENTS unit_test_framework REQUIRED)
 
@@ -23,11 +23,11 @@ include (CPack)
 
 configure_file("${PROJECT_SOURCE_DIR}/src/version.h.in" "${PROJECT_BINARY_DIR}/version.h")
 configure_file("${PROJECT_SOURCE_DIR}/src/${PROJECT_NAME}.conf" "${PROJECT_BINARY_DIR}/${PROJECT_NAME}.conf" COPYONLY)
+configure_file("${PROJECT_SOURCE_DIR}/src/dolanconf.sh" "${PROJECT_BINARY_DIR}/dolanconf.sh" COPYONLY)
 
 enable_testing()
 
 add_subdirectory(test)
 
-install (FILES ${PROJECT_BINARY_DIR}/${PROJECT_NAME}.conf DESTINATION /etc/${PROJECT_NAME} COMPONENT config)
 
 # add_test(test_version_valid test_${PROJECT_NAME})

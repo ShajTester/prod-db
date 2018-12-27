@@ -4,6 +4,7 @@
 #include <string>
 #include <memory>
 #include <fstream>
+#include <pwd.h>
 
 #include "prjconfig.hpp"
 #include "log.h"
@@ -16,20 +17,12 @@ namespace rikor
 
 prjConfig::prjConfig()
 {
-	// { // Используем конфигурацию по умолчанию
-	// 	configFileName = "/etc/dscan/dscan.conf";
-	// 	if(!is_file_exists(configFileName))
-	// 	{
-	// 		configFileName = GetCurrentWorkingDir();
-	// 		configFileName.append("/dscan.conf");
-	// 		if(!is_file_exists(configFileName))
-	// 		{
-	// 			std::cerr << fmt::format("\nNot found config file: {}\n", configFileName) << std::endl;
-	// 			return 1;
-	// 		}
-	// 	}
-	// }
-	confFileName = "~/.config/prod-db.conf";
+	// Определение домашней директории отсюда:
+	// https://ubuntuforums.org/showthread.php?t=2098007&s=ff400108c6ec001310acb3c43c354ce9&p=12421050#post12421050
+	passwd* pw = getpwuid(getuid());
+    std::string path(pw->pw_dir);
+	confFileName = path + "/.config/prod-db.conf";
+
 	if(is_file_exists(confFileName))
 	{
 		readConfig();
@@ -89,9 +82,15 @@ void prjConfig::readConfig()
 {
 	std::ifstream cf;
 	cf.open(confFileName);
-	cf >> dbFileName >> ProdTypeId;
-	cf.close();
-	SPDLOG_LOGGER_DEBUG(my_logger, "{}", __PRETTY_FUNCTION__);
+	if(cf.is_open())
+	{
+		cf >> dbFileName >> ProdTypeId;
+		cf.close();
+	}
+	else
+		SPDLOG_LOGGER_ERROR(my_logger, "File '{0}' does not open. Error: {1}", confFileName, errno);
+
+	SPDLOG_LOGGER_TRACE(my_logger, "{}", __PRETTY_FUNCTION__);
 	SPDLOG_LOGGER_DEBUG(my_logger, "dbFileName is '{}'", dbFileName);
 	SPDLOG_LOGGER_DEBUG(my_logger, "ProdTypeId = {}", ProdTypeId);
 }
@@ -99,11 +98,14 @@ void prjConfig::readConfig()
 
 void prjConfig::save()
 {
-	SPDLOG_LOGGER_DEBUG(my_logger, "{}", __PRETTY_FUNCTION__);
+	SPDLOG_LOGGER_TRACE(my_logger, "{}", __PRETTY_FUNCTION__);
 	SPDLOG_LOGGER_DEBUG(my_logger, "dbFileName is '{}'", dbFileName);
 	SPDLOG_LOGGER_DEBUG(my_logger, "ProdTypeId = {}", ProdTypeId);
-	// std::string fn {"~/.config/prod-db.conf"};
-	std::string fn {"~/prod-db.conf"};
+
+	passwd* pw = getpwuid(getuid());
+    std::string fn {pw->pw_dir};
+	fn += "/.config/prod-db.conf";
+	
 	std::ofstream cf;
 	cf.open(fn);
 	if(cf.is_open())
@@ -112,7 +114,7 @@ void prjConfig::save()
 		cf.close();
 	}
 	else
-		SPDLOG_LOGGER_ERROR(my_logger, "File '{}' does not open", fn);
+		SPDLOG_LOGGER_ERROR(my_logger, "File '{0}' does not open. Error: {1}", fn, errno);
 }
 
 std::shared_ptr<prjConfig> prjConfig::create()

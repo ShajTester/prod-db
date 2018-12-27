@@ -121,36 +121,24 @@ int main(int argc, char const *argv[])
 		}
 	}
 
-	try
-	{
-		if(dbfile) config->setDbFileName(args::get(dbfile));
-	}
-	catch(const std::exception &e)
-	{
-		// Ошибки установки основных параметров.
-		// Продолжать работу не можем.
-		std::cerr << e.what() << std::endl;
-		return 1;
-	}
+
+	if(dbfile) config->setDbFileName(args::get(dbfile));
 
 
 	if(product) 
 	{
 		auto db = rikor::ProductDb::create();
-		if(!is_file_exists(config->getDbFileName()))
+		try
 		{
-			try
-			{
-				db->connect(config->getDbFileName());
-				int prId = db->getProdTypeId(args::get(product));
-				config->setProdType(prId);
-			}
-			catch(const std::exception &e)
-			{
-				// Не смогли подключиться к базе
-				std::cerr << e.what() << std::endl;
-				return 1;
-			}
+			db->connect(config->getDbFileName());
+			int prId = db->getProdTypeId(args::get(product));
+			config->setProdType(prId);
+		}
+		catch(const std::exception &e)
+		{
+			// Не смогли подключиться к базе
+			std::cerr << e.what() << std::endl;
+			return 1;
 		}
 	}
 
@@ -199,7 +187,7 @@ int main(int argc, char const *argv[])
 					if(db->checkProdType(config->getProdType()))
 						id = db->newId(config->getProdType(), args::get(sn_for_get));
 					else
-						throw "Invalid ProdType";
+						throw std::runtime_error("Invalid ProdType");
 				}
 
 				auto proddata = db->productData(id);

@@ -5,7 +5,7 @@
 #include <cstdio>
 #include <ctime>
 #include <vector>
-
+#include <sstream>
 // #include "sqlite3.h"
 
 #include "sqlite_modern_cpp.h"
@@ -58,7 +58,7 @@ const std::string &RBDE5RData::if_number(int ni)
 	else
 	{
 		SPDLOG_LOGGER_CRITICAL(my_logger, "Error in if_number: ni={0}, i210={1}, i217={2}", ni, i210.rowid, i217.rowid);
-		throw "Error in if_number";
+		throw std::runtime_error("Error in if_number");
 	}
 }
 
@@ -265,7 +265,7 @@ std::shared_ptr<ProductData> ProductDb::productData(int id)
 	}
 	catch(const sqlite::errors::no_rows &e)
 	{
-		throw "Unknown device id";
+		throw std::runtime_error("Unknown device id");
 	}
 
 	switch(devtype)
@@ -275,7 +275,7 @@ std::shared_ptr<ProductData> ProductDb::productData(int id)
 		retval = std::make_shared<RBDE5RData>();
 		break;
 	default:
-		throw "Unknown type";
+		throw std::runtime_error("Unknown type");
 		break;
 	}
 
@@ -317,7 +317,7 @@ std::shared_ptr<ProductData> ProductDb::productData(int id)
 			if(sa.size() != 2)
 			{
 				SPDLOG_LOGGER_CRITICAL(my_logger, "Error in SQL");
-				throw "Error in SQL";
+				throw std::runtime_error("Error in SQL");
 			}
 			for(const auto &s: sa)
 				db << "update mac_addr set device=?, date=? where addr=?" 
@@ -342,7 +342,7 @@ std::shared_ptr<ProductData> ProductDb::productData(int id)
 	}
 	catch(const std::exception &e)
 	{
-		throw "Unable to allocate addresses";
+		throw std::runtime_error("Unable to allocate addresses");
 	}
 
 	return retval;
@@ -391,13 +391,45 @@ void ProductDb::freeProd(int id)
 
 int ProductDb::getProdTypeId(const std::string &str)
 {
-	return 0;
+	int retval = 0;
+	try
+	{
+		sqlite::database db(dbFileName);
+		db << "select id from dev_types where type=? or aliase=?;" << str << str >> retval;
+	}
+	catch(const sqlite::errors::no_rows &e)
+	{
+		throw std::runtime_error(fmt::format("No product type for '{}' found", str));
+	}
+	catch (sqlite::sqlite_exception &e)
+	{
+		std::stringstream es;
+		es << e.get_code() << ": " << e.what() << " during \"" << e.get_sql() << "\"";
+		throw std::runtime_error(es.str());
+		// std::cerr  << e.get_code() << ": " << e.what() << " during \""
+		// 	<< e.get_sql() << "\"" << std::endl;
+	}
+	return retval;
 }
 
 
 bool ProductDb::checkProdType(int id)
 {
-	return false;
+	// bool retval = false;
+	int cnt;
+	try
+	{
+		sqlite::database db(dbFileName);
+		db << "select count(*) from dev_types where id=?;" << id >> cnt;
+		// if(cnt == 1) retval = true;
+	}
+	catch (sqlite::sqlite_exception &e)
+	{
+		std::stringstream es;
+		es << e.get_code() << ": " << e.what() << " during \"" << e.get_sql() << "\"";
+		throw std::runtime_error(es.str());
+	}
+	return cnt;
 }
 
 

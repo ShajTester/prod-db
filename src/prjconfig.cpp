@@ -54,6 +54,12 @@ void prjConfig::setFileName(const std::string &fn)
 }
 
 
+const std::string &prjConfig::getFileName() const
+{
+	return confFileName;
+}
+
+
 void prjConfig::setDbFileName(const std::string &fn)
 {
 	dbFileName = fn;

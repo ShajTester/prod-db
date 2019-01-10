@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.2)
 
-project(prod-db VERSION 0.0.3)
+project(prod-db VERSION 0.0.4)
 
 #find_package(Boost COMPONENTS unit_test_framework REQUIRED)
 

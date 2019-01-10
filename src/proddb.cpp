@@ -31,6 +31,9 @@ RBDE5RData::~RBDE5RData()
 void RBDE5RData::report(std::ostream &os)
 {
 	char mbstr[100];
+
+	os << "Board: " << boardName << "\nS/n  : " << serial << "\n";
+
 	if(i210.rowid != -1)
 	{
 		std::strftime(mbstr, sizeof(mbstr), "%F %R", std::localtime(&i210.timestamp));
@@ -86,7 +89,16 @@ void RBDE5RData::push_addr(int rowid, const std::string &addr, long long d)
 	}		
 }
 
+void RBDE5RData::setSerial(const std::string &ser)
+{
+	serial = ser;
+}
 
+
+void RBDE5RData::setName(const std::string &str)
+{
+	boardName = str;
+}
 
 
 
@@ -230,6 +242,37 @@ int ProductDb::findId(const std::string &str)
 	return id;
 }
 
+
+int ProductDb::IdFromMAC(const std::string &mac_str)
+{
+	std::string mac;
+	std::copy_if(std::begin(mac_str), std::end(mac_str), std::back_inserter(mac), 
+		[](const char c)
+		{
+			return ((c >= '0') && (c <= '9') || (c >= 'A') && (c <= 'F') || (c >= 'a') && (c <= 'f'));
+		});
+	SPDLOG_LOGGER_DEBUG(my_logger, "MAC address to find: '{}'", mac);
+	if(mac.size() != 12)
+		throw std::invalid_argument(fmt::format("Incorrect MAC address: '{}'", mac));
+
+	sqlite::database db(dbFileName);
+	int id;
+	try
+	{
+		db << "select device from mac_addr where addr=?" << mac >> id;
+		if(id == 0) id = -1;   // Усли таблица заполнена, но адрес не выделен. NULL превращается в 0
+	}
+	catch(const sqlite::errors::no_rows &e)
+	{
+		id = -1;
+	}
+
+	SPDLOG_LOGGER_DEBUG(my_logger, "ProductDb::findId  id = {}", id);
+
+	return id;
+}
+
+
 int ProductDb::newId(int type, const std::string &str)
 {
 	sqlite::database db(dbFileName);
@@ -275,7 +318,7 @@ std::shared_ptr<ProductData> ProductDb::productData(int id)
 		retval = std::make_shared<RBDE5RData>();
 		break;
 	default:
-		throw std::runtime_error("Unknown type");
+		throw std::runtime_error(fmt::format("Unknown board type: {}", devtype));
 		break;
 	}
 
@@ -285,6 +328,12 @@ std::shared_ptr<ProductData> ProductDb::productData(int id)
 	// Пока устройство одно, реализуем все здесь.
 	try
 	{
+		std::string tstr;
+		db << "select type from dev_types where id=?" << devtype >> tstr;
+		retval->setName(tstr);
+		db << "select serial from devices where id=?" << id >> tstr;
+		retval->setSerial(tstr);
+
 		// Если адреса уже были выделены, просто их читаем.
 		std::vector<mac_table_row> vres;
 		db << "select rowid, addr, date from mac_addr where device=?" << id

@@ -66,6 +66,7 @@ int main(int argc, char const *argv[])
 	args::Flag prodlist(databasegroup, "prodlist", "print list of product name", {"prodlist"});
 	args::ValueFlag<std::string> sn_for_get(databasegroup, "serial", "The serial number of the product for which to obtain the address.", {"get"});
 	args::ValueFlag<std::string> sn_for_free(databasegroup, "serial", "Serial number for which to release the address.", {"free"});
+	args::ValueFlag<std::string> info_mac(databasegroup, "MAC-addr", "Get info about MAC-address", {"info-mac"});
 
 	args::ValueFlag<int> interface_number(parser, "number", "Interface number for '--get'.", {"ni"});
 
@@ -92,12 +93,6 @@ int main(int argc, char const *argv[])
 	}
 
 
-	if(ver)
-	{
-		std::cout << "MAC address database\nversion " << VER << std::endl;
-		return 0;
-	}
-
 	if(log_level)
 	{
 		int ll = args::get(log_level);
@@ -105,7 +100,17 @@ int main(int argc, char const *argv[])
 			my_logger->set_level(static_cast<spdlog::level::level_enum>(ll));
 	}
 
+
 	auto config = rikor::prjConfig::create();
+
+	if(ver)
+	{
+		std::cout << "MAC address database\nversion " << VER << "\n\n";
+		std::cout << "Config file       : '" << config->getFileName() << "'\n";
+		std::cout << "Database file     : '" << config->getDbFileName() << "'\n";
+		std::cout << "Default board type: '" << config->getProdType() << "'\n" << std::endl;
+		return 0;
+	}
 
 	if(conf)
 	{ // Загружаем конфигурацию из файла
@@ -124,6 +129,34 @@ int main(int argc, char const *argv[])
 
 	if(dbfile) config->setDbFileName(args::get(dbfile));
 
+	if(info_mac)
+	{
+		auto db = rikor::ProductDb::create();
+		try
+		{
+			db->connect(config->getDbFileName());
+			int id = db->IdFromMAC(args::get(info_mac));
+			if(id == -1)
+			{
+				std::cout << fmt::format("Address '{}' does not allocated", args::get(info_mac)) << std::endl;
+			}
+			else
+			{
+				auto proddata = db->productData(id);
+				proddata->report(std::cout);
+			}
+		}
+		catch(const std::exception &e)
+		{
+			std::cerr << e.what() << std::endl;
+			return 1;
+		}
+		// Сохраняем используемые параметры
+		config->save();
+		// Release and close all loggers
+		spdlog::drop_all();
+		return 0;
+	}
 
 	if(product) 
 	{

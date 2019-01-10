@@ -30,6 +30,7 @@ public:
 	~prjConfig();
 
 	void setFileName(const std::string &fn);
+	const std::string &getFileName() const;
 	void setDbFileName(const std::string &fn);
 	const std::string &getDbFileName() const;
 	void setProdType(int tp);

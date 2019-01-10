@@ -31,6 +31,8 @@ public:
 	virtual void report(std::ostream &os) = 0;
 	virtual const std::string &if_number(int ni) = 0;
 	virtual void push_addr(int rowid, const std::string &addr, long long d) = 0;
+	virtual void setSerial(const std::string &ser) = 0;
+	virtual void setName(const std::string &ser) = 0;
 };
 
 
@@ -39,6 +41,9 @@ class RBDE5RData : public ProductData
 	mac_table_row i210;
 	mac_table_row i217;
 
+	std::string serial;
+	std::string boardName;
+
 public:	
 	RBDE5RData();
 	~RBDE5RData();
@@ -46,6 +51,8 @@ public:
 	void report(std::ostream &os) override;
 	const std::string &if_number(int ni) override;
 	void push_addr(int rowid, const std::string &addr, long long d) override;
+	void setSerial(const std::string &ser) override;
+	void setName(const std::string &ser) override;
 };
 
 
@@ -73,7 +80,8 @@ public:
 	bool checkProdType(int id);
 
 	// Изделие
-	int findId(const std::string &str);
+	int findId(const std::string &str);   /// По серийному номеру.
+	int IdFromMAC(const std::string &mac_str);
 	int newId(int type, const std::string &str);
 	std::shared_ptr<ProductData> productData(int id);
 	void freeProd(int id);

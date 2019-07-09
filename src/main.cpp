@@ -121,7 +121,8 @@ int main(int argc, char const *argv[])
 		}
 		catch(const std::exception &e)
 		{
-			std::cerr << e.what() << std::endl;
+			SPDLOG_LOGGER_ERROR(my_logger, "{}", e.what());
+			SPDLOG_LOGGER_ERROR(my_logger, "Error loading config {}", args::get(conf));
 			return 1;
 		}
 	}
@@ -148,7 +149,8 @@ int main(int argc, char const *argv[])
 		}
 		catch(const std::exception &e)
 		{
-			std::cerr << e.what() << std::endl;
+			SPDLOG_LOGGER_ERROR(my_logger, "{}", e.what());
+			SPDLOG_LOGGER_ERROR(my_logger, "Database file name {}", config->getDbFileName());
 			return 1;
 		}
 		// Сохраняем используемые параметры
@@ -170,7 +172,8 @@ int main(int argc, char const *argv[])
 		catch(const std::exception &e)
 		{
 			// Не смогли подключиться к базе
-			std::cerr << e.what() << std::endl;
+			SPDLOG_LOGGER_ERROR(my_logger, "{}", e.what());
+			SPDLOG_LOGGER_ERROR(my_logger, "Database file name {}", config->getDbFileName());
 			return 1;
 		}
 	}
@@ -190,14 +193,16 @@ int main(int argc, char const *argv[])
 			catch(const std::exception &e)
 			{
 				// Не смогли подключиться к базе
-				std::cerr << e.what() << std::endl;
+				// std::cerr << e.what() << std::endl;
+				SPDLOG_LOGGER_ERROR(my_logger, "{}", e.what());
+				SPDLOG_LOGGER_ERROR(my_logger, "Database file name {}", config->getDbFileName());
 				return 1;
 			}
 		}
 		else
 		{
 			// Существующий файл перезаписывать новой базой не нужно
-			std::cerr << fmt::format("File {} already exists. Please enter a different name.", config->getDbFileName()) << std::endl;
+			SPDLOG_LOGGER_ERROR(my_logger, "File {} already exists. Please enter a different name.", config->getDbFileName());
 			return 1;
 		}
 	}
@@ -244,7 +249,8 @@ int main(int argc, char const *argv[])
 		catch(const std::exception &e)
 		{
 			// Не смогли подключиться к базе
-			std::cerr << e.what() << std::endl;
+			SPDLOG_LOGGER_ERROR(my_logger, "{}", e.what());
+			SPDLOG_LOGGER_ERROR(my_logger, "Database file name {}", config->getDbFileName());
 			return 1;
 		}
 	}

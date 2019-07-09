@@ -8,9 +8,20 @@ _Утилита для управления MAC адресами на произ
 - Журнал [spdlog](https://github.com/gabime/spdlog)
 - The C++14 wrapper around sqlite library - [sqlite_modern_cpp](https://github.com/SqliteModernCpp/sqlite_modern_cpp)
 
+## Установка
+
 Установка SQLite 3 на Ubuntu
 ```shell
 sudo apt install sqlite3 libsqlite3-dev
+```
+
+prod-db
+```
+git clone https://github.com/ShajTester/prod-db.git
+mkdir rel
+cd rel
+cmake -DCMAKE_BUILD_TYPE=MinSizeRel ../prod-db
+sudo make install
 ```
 
 ## Использование
